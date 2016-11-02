@@ -36,7 +36,9 @@ for f in os.listdir(mypath):
                 im[:, :, 2] -= 123.68
                 im = im.transpose((2, 0, 1))
                 data.append(im)
-                labels.append(i)
+                label = [0, 0, 0, 0, 0]
+                label[i] = 1
+                labels.append(label)
                 bar.update(count)
                 count = count + 1
         i = i + 1
@@ -53,6 +55,6 @@ np.savez(dataset_file, x=x, y=y)
 with open(index_file, 'w') as f:
     json.dump(label_indexes, f)
 
-print(label_indexes)
-print(x.shape)
-print(y.shape)
+# print(label_indexes)
+# print(x.shape)
+# print(y.shape)

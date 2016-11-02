@@ -72,10 +72,8 @@ def VGG_16(weights_path=None, input_shape=(3, 224, 224), nb_class=5):
     # remove last layer
     model.layers.pop()
     model.add(Dense(nb_class, activation='softmax'))
-    model.add(Dense(1, activation='sigmoid'))
-    # sgd = SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True)
-    # model.compile(optimizer=sgd, loss='categorical_crossentropy')
-    model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+    sgd = SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True)
+    model.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy'])
     return model
 
 
