@@ -1,2 +1,3 @@
 *.npz
+*.h5
 *.index.json
