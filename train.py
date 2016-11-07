@@ -99,15 +99,17 @@ datafile = tables.open_file(dataset_file, mode='r').root
 # setup model
 print('Preparing model')
 model = VGG_16('../vgg16_weights.h5', datafile.data[0].shape, len(dataset_index))
+# model = VGG_16(None, datafile.data[0].shape, len(dataset_index))
 
 
 # training model
 num_rows = datafile.data.nrows
-num_iterate = int(math.ceil(num_rows * 1.0 / DATASET_BATCH_SIZE))
+num_iterate = num_rows / DATASET_BATCH_SIZE
 print('Training model using {} data in batch of {}'.format(num_rows, DATASET_BATCH_SIZE))
 for e in range(NB_EPOCH):
+    print('Epoch {}/{}'.format(e + 1, NB_EPOCH))
     for i in range(num_iterate):
-        print('Data batch {}/{}'.format(i, num_iterate))
+        print('Data batch {}/{}'.format(i + 1, num_iterate))
         begin = i + i * DATASET_BATCH_SIZE
         end = begin + DATASET_BATCH_SIZE
         X_train, X_test, Y_train, Y_test = train_test_split(
