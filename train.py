@@ -1,7 +1,7 @@
 '''
 Train batik classifier
 GPU run command:
-    THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python train.py <dataset.npz> <dataset.index.json>
+    THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python train.py <in:dataset.h5> <in:dataset.test.h5> <dataset.index.json>
 
 '''
 from __future__ import print_function
@@ -25,18 +25,19 @@ NB_EPOCH = 5
 # dataset
 DATASET_BATCH_SIZE = 500
 
+
 def VGG_16(weights_path=None, input_shape=(3, 224, 224), nb_class=5):
     model = Sequential()
     model.add(ZeroPadding2D((1, 1), input_shape=input_shape))
-    model.add(Convolution2D(64, 3, 3, activation='relu'))
+    model.add(Convolution2D(64, 3, 3, activation='relu'), trainable=false)
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(64, 3, 3, activation='relu'))
     model.add(MaxPooling2D((2, 2), strides=(2, 2)))
 
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(128, 3, 3, activation='relu'))
+    model.add(Convolution2D(128, 3, 3, activation='relu'), trainable=false)
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(128, 3, 3, activation='relu'))
+    model.add(Convolution2D(128, 3, 3, activation='relu'), trainable=false)
     model.add(MaxPooling2D((2, 2), strides=(2, 2)))
 
     model.add(ZeroPadding2D((1, 1)))
@@ -83,6 +84,7 @@ def VGG_16(weights_path=None, input_shape=(3, 224, 224), nb_class=5):
 
 # command line arguments
 dataset_file = sys.argv[1]
+test_file = sys.argv[2]
 dataset_index_file = sys.argv[2]
 
 # read index
@@ -94,16 +96,17 @@ print('Loading dataset')
 # npzfile = np.load(dataset_file)
 # X = npzfile['x']
 # Y = npzfile['y']
-datafile = tables.open_file(dataset_file, mode='r').root
+datafile = tables.open_file(dataset_file, mode='r')
+dataset = dafafile.root
 
 # setup model
 print('Preparing model')
-model = VGG_16('../vgg16_weights.h5', datafile.data[0].shape, len(dataset_index))
-# model = VGG_16(None, datafile.data[0].shape, len(dataset_index))
+model = VGG_16('../vgg16_weights.h5', dataset.data[0].shape, len(dataset_index))
+# model = VGG_16(None, dataset.data[0].shape, len(dataset_index))
 
 
 # training model
-num_rows = datafile.data.nrows
+num_rows = dataset.data.nrows
 num_iterate = num_rows / DATASET_BATCH_SIZE
 print('Training model using {} data in batch of {}'.format(num_rows, DATASET_BATCH_SIZE))
 for e in range(NB_EPOCH):
@@ -113,7 +116,7 @@ for e in range(NB_EPOCH):
         begin = i + i * DATASET_BATCH_SIZE
         end = begin + DATASET_BATCH_SIZE
         X_train, X_test, Y_train, Y_test = train_test_split(
-            datafile.data[begin:end], datafile.labels[begin:end],
+            dataset.data[begin:end], dataset.labels[begin:end],
             test_size=0.10
         )
         model.fit(X_train, Y_train,
@@ -125,6 +128,16 @@ for e in range(NB_EPOCH):
 # saving model
 print('Saving model')
 model.save('model_{}.h5'.format(datetime.now().strftime('%Y%m%d%H%M%S')))
+
+print('Loading test dataset')
+test_tables = tables.open_file(test_file, mode='r')
+test = test_tables.root
+X = test.data[:]
+Y = test.labels[:]
+
+print('Evaluating')
+score = model.evaluate(X, Y)
+print "%s: %.2f%%" % (model.metrics_names[1], score[1] * 100)
 
 # close dataset
 datafile.close()
