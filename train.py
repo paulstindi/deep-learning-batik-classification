@@ -20,7 +20,7 @@ from datetime import datetime
 
 # training parameters
 BATCH_SIZE = 50
-NB_EPOCH = 5
+NB_EPOCH = 1
 
 # dataset
 DATASET_BATCH_SIZE = 500
@@ -29,31 +29,31 @@ DATASET_BATCH_SIZE = 500
 def VGG_16(weights_path=None, input_shape=(3, 224, 224), nb_class=5):
     model = Sequential()
     model.add(ZeroPadding2D((1, 1), input_shape=input_shape))
-    model.add(Convolution2D(64, 3, 3, activation='relu'), trainable=false)
+    model.add(Convolution2D(64, 3, 3, activation='relu', trainable=False))
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(64, 3, 3, activation='relu'))
+    model.add(Convolution2D(64, 3, 3, activation='relu', trainable=False))
     model.add(MaxPooling2D((2, 2), strides=(2, 2)))
 
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(128, 3, 3, activation='relu'), trainable=false)
+    model.add(Convolution2D(128, 3, 3, activation='relu', trainable=False))
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(128, 3, 3, activation='relu'), trainable=false)
+    model.add(Convolution2D(128, 3, 3, activation='relu', trainable=False))
     model.add(MaxPooling2D((2, 2), strides=(2, 2)))
 
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(Convolution2D(256, 3, 3, activation='relu', trainable=False))
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(Convolution2D(256, 3, 3, activation='relu', trainable=False))
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(Convolution2D(256, 3, 3, activation='relu', trainable=False))
     model.add(MaxPooling2D((2, 2), strides=(2, 2)))
 
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(Convolution2D(512, 3, 3, activation='relu', trainable=False))
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(Convolution2D(512, 3, 3, activation='relu', trainable=False))
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(Convolution2D(512, 3, 3, activation='relu', trainable=False))
     model.add(MaxPooling2D((2, 2), strides=(2, 2)))
 
     model.add(ZeroPadding2D((1, 1)))
@@ -85,7 +85,7 @@ def VGG_16(weights_path=None, input_shape=(3, 224, 224), nb_class=5):
 # command line arguments
 dataset_file = sys.argv[1]
 test_file = sys.argv[2]
-dataset_index_file = sys.argv[2]
+dataset_index_file = sys.argv[3]
 
 # read index
 with open(dataset_index_file, 'r') as f:
@@ -97,7 +97,7 @@ print('Loading dataset')
 # X = npzfile['x']
 # Y = npzfile['y']
 datafile = tables.open_file(dataset_file, mode='r')
-dataset = dafafile.root
+dataset = datafile.root
 
 # setup model
 print('Preparing model')
@@ -137,7 +137,7 @@ Y = test.labels[:]
 
 print('Evaluating')
 score = model.evaluate(X, Y)
-print "%s: %.2f%%" % (model.metrics_names[1], score[1] * 100)
+print('{}: {}%'.format(model.metrics_names[1], score[1] * 100))
 
 # close dataset
 datafile.close()
