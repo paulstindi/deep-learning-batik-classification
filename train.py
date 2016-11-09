@@ -20,10 +20,10 @@ from datetime import datetime
 
 # training parameters
 BATCH_SIZE = 50
-NB_EPOCH = 1
+NB_EPOCH = 50
 
 # dataset
-DATASET_BATCH_SIZE = 500
+DATASET_BATCH_SIZE = 1000
 
 
 def VGG_16(weights_path=None, input_shape=(3, 224, 224), nb_class=5):
@@ -92,12 +92,10 @@ with open(dataset_index_file, 'r') as f:
     dataset_index = json.load(f)
 
 # loading dataset
-print('Loading dataset')
-# npzfile = np.load(dataset_file)
-# X = npzfile['x']
-# Y = npzfile['y']
+print('Loading train dataset: {}'.format(dataset_file))
 datafile = tables.open_file(dataset_file, mode='r')
 dataset = datafile.root
+print(dataset.data[:].shape)
 
 # setup model
 print('Preparing model')
@@ -107,7 +105,7 @@ model = VGG_16('../vgg16_weights.h5', dataset.data[0].shape, len(dataset_index))
 
 # training model
 num_rows = dataset.data.nrows
-num_iterate = num_rows / DATASET_BATCH_SIZE
+num_iterate = num_rows / DATASET_BATCH_SIZE if num_rows > DATASET_BATCH_SIZE else 1
 print('Training model using {} data in batch of {}'.format(num_rows, DATASET_BATCH_SIZE))
 for e in range(NB_EPOCH):
     print('Epoch {}/{}'.format(e + 1, NB_EPOCH))
@@ -129,11 +127,12 @@ for e in range(NB_EPOCH):
 print('Saving model')
 model.save('model_{}.h5'.format(datetime.now().strftime('%Y%m%d%H%M%S')))
 
-print('Loading test dataset')
+print('Loading test dataset: {}'.format(test_file))
 test_tables = tables.open_file(test_file, mode='r')
 test = test_tables.root
 X = test.data[:]
 Y = test.labels[:]
+print(X.shape)
 
 print('Evaluating')
 score = model.evaluate(X, Y)
