@@ -20,7 +20,7 @@ from datetime import datetime
 
 # training parameters
 BATCH_SIZE = 50
-NB_EPOCH = 50
+NB_EPOCH = 10
 
 # dataset
 DATASET_BATCH_SIZE = 1000
@@ -105,23 +105,34 @@ model = VGG_16('../vgg16_weights.h5', dataset.data[0].shape, len(dataset_index))
 
 # training model
 num_rows = dataset.data.nrows
-num_iterate = num_rows / DATASET_BATCH_SIZE if num_rows > DATASET_BATCH_SIZE else 1
-print('Training model using {} data in batch of {}'.format(num_rows, DATASET_BATCH_SIZE))
-for e in range(NB_EPOCH):
-    print('Epoch {}/{}'.format(e + 1, NB_EPOCH))
-    for i in range(num_iterate):
-        print('Data batch {}/{}'.format(i + 1, num_iterate))
-        begin = i + i * DATASET_BATCH_SIZE
-        end = begin + DATASET_BATCH_SIZE
-        X_train, X_test, Y_train, Y_test = train_test_split(
-            dataset.data[begin:end], dataset.labels[begin:end],
-            test_size=0.10
-        )
-        model.fit(X_train, Y_train,
-                  batch_size=BATCH_SIZE,
-                  nb_epoch=1,
-                  validation_data=(X_test, Y_test),
-                  shuffle=True)
+
+if num_rows > DATASET_BATCH_SIZE:
+    # batch training. bad result so far :(
+    num_iterate = num_rows / DATASET_BATCH_SIZE
+    print('Training model using {} data in batch of {}'.format(num_rows, DATASET_BATCH_SIZE))
+    for e in range(NB_EPOCH):
+        print('Epoch {}/{}'.format(e + 1, NB_EPOCH))
+        for i in range(num_iterate):
+            print('Data batch {}/{}'.format(i + 1, num_iterate))
+            begin = i + i * DATASET_BATCH_SIZE
+            end = begin + DATASET_BATCH_SIZE
+            X_train, X_test, Y_train, Y_test = train_test_split(
+                dataset.data[begin:end], dataset.labels[begin:end],
+                test_size=0.10
+            )
+            model.fit(X_train, Y_train,
+                      batch_size=BATCH_SIZE,
+                      nb_epoch=1,
+                      validation_data=(X_test, Y_test),
+                      shuffle=True)
+else:
+    # one-go training
+    X_train, X_test, Y_train, Y_test = train_test_split(dataset.data[:], dataset.labels[:], test_size=0.10)
+    model.fit(X_train, Y_train,
+              batch_size=BATCH_SIZE,
+              nb_epoch=NB_EPOCH,
+              validation_data=(X_test, Y_test),
+              shuffle=True)
 
 # saving model
 print('Saving model')
