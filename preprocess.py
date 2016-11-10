@@ -107,13 +107,13 @@ for f in os.listdir(mypath):
             path_sub = os.path.join(path, f_sub)
             if os.path.isfile(path_sub):
                 im = cv2.imread(path_sub)
+                # transpose to match VGG-16 input
                 transposed = im.transpose((2, 0, 1))
                 # gather stat
                 if transposed.shape not in stat:
                     stat[transposed.shape] = 0
                 stat[transposed.shape] += 1
                 for square in square_slice_generator(transposed, EXPECTED_SIZE):
-                    # transpose to match VGG-16 input
                     data.append(np.array([square]))
                     # one-hot label
                     label = np.zeros(5)

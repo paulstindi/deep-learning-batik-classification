@@ -11,7 +11,9 @@ import cv2
 import json
 import tables
 import math
-from keras.models import Sequential
+from keras.applications.vgg16 import VGG16
+from keras.models import Sequential, Model
+from keras.layers import Input
 from keras.layers.core import Flatten, Dense, Dropout
 from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
 from keras.optimizers import SGD
@@ -24,62 +26,6 @@ NB_EPOCH = 10
 
 # dataset
 DATASET_BATCH_SIZE = 1000
-
-
-def VGG_16(weights_path=None, input_shape=(3, 224, 224), nb_class=5):
-    model = Sequential()
-    model.add(ZeroPadding2D((1, 1), input_shape=input_shape))
-    model.add(Convolution2D(64, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(64, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
-
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(128, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(128, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
-
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
-
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
-
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
-
-    model.add(Flatten())
-    model.add(Dense(4096, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(4096, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(1000, activation='softmax'))
-
-    if weights_path:
-        model.load_weights(weights_path)
-
-    # remove last layer
-    model.layers.pop()
-    model.add(Dense(nb_class, activation='softmax'))
-    sgd = SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True)
-    model.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy'])
-    return model
 
 
 # command line arguments
@@ -99,9 +45,25 @@ print(dataset.data[:].shape)
 
 # setup model
 print('Preparing model')
-model = VGG_16('../vgg16_weights.h5', dataset.data[0].shape, len(dataset_index))
-# model = VGG_16(None, dataset.data[0].shape, len(dataset_index))
+base_model = VGG16(weights='imagenet', include_top=False, input_tensor=Input(shape=(3, 224, 224)))
+x = base_model.output
+x = Flatten()(x)
+x = Dense(4096, activation='relu')(x)
+x = Dropout(0.5)(x)
+x = Dense(4096, activation='relu')(x)
+x = Dropout(0.5)(x)
+predictions = Dense(5, activation='softmax')(x)
 
+# this is the model we will train
+model = Model(input=base_model.input, output=predictions)
+
+# freeze base_model layers
+for layer in base_model.layers:
+    layer.trainable = False
+
+# compile the model (should be done *after* setting layers to non-trainable)
+sgd = SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True)
+model.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy'])
 
 # training model
 num_rows = dataset.data.nrows
