@@ -27,6 +27,10 @@ NB_EPOCH = 10
 # dataset
 DATASET_BATCH_SIZE = 1000
 
+EXPECTED_SIZE = 224
+EXPECTED_CHANNELS = 3
+EXPECTED_DIM = (EXPECTED_CHANNELS, EXPECTED_SIZE, EXPECTED_SIZE)
+EXPECTED_CLASS = 5
 
 # command line arguments
 dataset_file = sys.argv[1]
@@ -45,14 +49,14 @@ print(dataset.data[:].shape)
 
 # setup model
 print('Preparing model')
-base_model = VGG16(weights='imagenet', include_top=False, input_tensor=Input(shape=(3, 224, 224)))
+base_model = VGG16(weights='imagenet', include_top=False, input_tensor=Input(shape=EXPECTED_DIM))
 x = base_model.output
 x = Flatten()(x)
 x = Dense(4096, activation='relu')(x)
 x = Dropout(0.5)(x)
 x = Dense(4096, activation='relu')(x)
 x = Dropout(0.5)(x)
-predictions = Dense(5, activation='softmax')(x)
+predictions = Dense(5, activation='softmax', init='uniform')(x)
 
 # this is the model we will train
 model = Model(input=base_model.input, output=predictions)
@@ -62,8 +66,8 @@ for layer in base_model.layers:
     layer.trainable = False
 
 # compile the model (should be done *after* setting layers to non-trainable)
-sgd = SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True)
-model.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy'])
+# sgd = SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True)
+model.compile(loss='categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
 
 # training model
 num_rows = dataset.data.nrows
@@ -76,7 +80,7 @@ if num_rows > DATASET_BATCH_SIZE:
         print('Epoch {}/{}'.format(e + 1, NB_EPOCH))
         for i in range(num_iterate):
             print('Data batch {}/{}'.format(i + 1, num_iterate))
-            begin = i + i * DATASET_BATCH_SIZE
+            begin = i * DATASET_BATCH_SIZE
             end = begin + DATASET_BATCH_SIZE
             X_train, X_test, Y_train, Y_test = train_test_split(
                 dataset.data[begin:end], dataset.labels[begin:end],
