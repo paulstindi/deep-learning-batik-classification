@@ -109,8 +109,9 @@ if __name__ == '__main__':
                     for square in square_slice_generator(gray, EXPECTED_SIZE):
                         # save train data
                         append_data_and_label(square, i, data, labels)
-                    # save test data
                     r = resize(gray, EXPECTED_SIZE)
+                    append_data_and_label(r, i, data, labels)
+                    # save test data
                     append_data_and_label(r, i, data_test, labels_test)
                     # update progress bar
                     bar.update(count)

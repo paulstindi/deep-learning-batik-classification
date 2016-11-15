@@ -21,11 +21,11 @@ from sklearn.model_selection import train_test_split
 from datetime import datetime
 
 # training parameters
-BATCH_SIZE = 30
-NB_EPOCH = 10
+BATCH_SIZE = 50
+NB_EPOCH = 20
 
 # dataset
-DATASET_BATCH_SIZE = 1000
+DATASET_BATCH_SIZE = 20000
 
 EXPECTED_SIZE = 224
 EXPECTED_CHANNELS = 3
@@ -53,10 +53,10 @@ base_model = VGG16(weights='imagenet', include_top=False, input_tensor=Input(sha
 x = base_model.output
 x = Flatten()(x)
 x = Dense(4096, activation='relu')(x)
-x = Dropout(0.5)(x)
+x = Dropout(0.2)(x)
 x = Dense(4096, activation='relu')(x)
-x = Dropout(0.5)(x)
-predictions = Dense(EXPECTED_CLASS, activation='softmax')(x)
+x = Dropout(0.2)(x)
+predictions = Dense(EXPECTED_CLASS, activation='softmax', init='uniform')(x)
 
 # this is the model we will train
 model = Model(input=base_model.input, output=predictions)
@@ -66,8 +66,8 @@ for layer in base_model.layers:
     layer.trainable = False
 
 # compile the model (should be done *after* setting layers to non-trainable)
-# sgd = SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True)
-model.compile(loss='categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
+sgd = SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True)
+model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
 
 # training model
 num_rows = dataset.data.nrows
