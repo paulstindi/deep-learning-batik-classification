@@ -21,7 +21,7 @@ from sklearn.model_selection import train_test_split
 from datetime import datetime
 
 # training parameters
-BATCH_SIZE = 50
+BATCH_SIZE = 30
 NB_EPOCH = 10
 
 # dataset
@@ -56,7 +56,7 @@ x = Dense(4096, activation='relu')(x)
 x = Dropout(0.5)(x)
 x = Dense(4096, activation='relu')(x)
 x = Dropout(0.5)(x)
-predictions = Dense(5, activation='softmax', init='uniform')(x)
+predictions = Dense(EXPECTED_CLASS, activation='softmax')(x)
 
 # this is the model we will train
 model = Model(input=base_model.input, output=predictions)
