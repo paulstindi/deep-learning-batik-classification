@@ -4,7 +4,7 @@ import numpy as np
 from scipy import ndimage
 
 MAX_VALUE = 255
-FILTER_THRESHOLD = 0.5
+FILTER_THRESHOLD = 100
 
 
 def square_slice_generator(data, size, slices_per_axis=3):
@@ -35,12 +35,13 @@ def resize(data, size):
 def normalize_and_filter(data, max_value=MAX_VALUE, threshold=FILTER_THRESHOLD):
     # invertion
     # data = (255 - data)
-    # histogram equalization
-    data = cv2.equalizeHist(data)
-    data = data * 1.0 / max_value
-    # data = ndimage.gaussian_filter(data, 2)
-    # data = ndimage.median_filter(data, 4)
+    # threshold
     data[data < threshold] = 0
+    # histogram equalization
+    # data = cv2.equalizeHist(data)
+    # data = ndimage.median_filter(data, 4)
+    # data = ndimage.gaussian_filter(data, 2)
+    data = data * 1.0 / max_value
     return data
 
 original = cv2.imread(sys.argv[1])

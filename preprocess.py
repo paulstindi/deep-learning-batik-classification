@@ -13,7 +13,7 @@ import tables
 from scipy import ndimage
 
 # config
-FILTER_THRESHOLD = 0.5
+FILTER_THRESHOLD = 100
 
 # global vars
 EXPECTED_SIZE = 224
@@ -51,12 +51,12 @@ def resize(data, size):
 def normalize_and_filter(data, max_value=MAX_VALUE, threshold=FILTER_THRESHOLD):
     # invertion
     # data = (255 - data)
+    data[data < threshold] = 0
     # histogram equalization
-    data = cv2.equalizeHist(data)
+    # data = cv2.equalizeHist(data)
     data = data * 1.0 / max_value
     # data = ndimage.gaussian_filter(data, 2)
     # data = ndimage.median_filter(data, 4)
-    data[data < threshold] = 0
     return data
 
 
