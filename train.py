@@ -29,7 +29,7 @@ EXPECTED_SIZE = 224
 EXPECTED_CHANNELS = 3
 EXPECTED_DIM = (EXPECTED_CHANNELS, EXPECTED_SIZE, EXPECTED_SIZE)
 EXPECTED_CLASS = 5
-
+MODEL_NAME = 'model.h5'
 
 def dataset_generator(dataset, batch_size):
     while True:
@@ -43,6 +43,10 @@ def dataset_generator(dataset, batch_size):
 # command line arguments
 dataset_file = sys.argv[1]
 test_file = sys.argv[2]
+
+print('BATCH_SIZE: {}'.format(BATCH_SIZE))
+print('NB_EPOCH: {}'.format(NB_EPOCH))
+print('DATASET_BATCH_SIZE: {}'.format(DATASET_BATCH_SIZE))
 
 # loading dataset
 print('Loading train dataset: {}'.format(dataset_file))
@@ -93,7 +97,7 @@ else:
 
 # saving model
 print('Saving model')
-model.save('model_{}.h5'.format(datetime.now().strftime('%Y%m%d%H%M%S')))
+model.save(MODEL_NAME)
 
 print('Loading test dataset: {}'.format(test_file))
 test_tables = tables.open_file(test_file, mode='r')
