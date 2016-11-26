@@ -10,11 +10,10 @@ import numpy as np
 import json
 import progressbar
 import tables
+from scipy import ndimage
 
 # config
-EXPECTED_MAX = 100.0
-EXPECTED_MIN = -1 * EXPECTED_MAX
-FILTER_THRESHOLD = -90.0
+FILTER_THRESHOLD = 100
 
 # global vars
 EXPECTED_SIZE = 224
@@ -43,23 +42,30 @@ def square_slice_generator(data, size, slices_per_axis=5):
 
 
 def resize(data, size):
-    return cv2.resize(data, (size, size))
+    scale_row = 1.0 * size / data.shape[0]
+    scale_col = 1.0 * size / data.shape[1]
+    resized = ndimage.interpolation.zoom(data, (scale_row, scale_col), order=3, prefilter=True)
+    return resized
 
 
 def normalize_and_filter(data, max_value=MAX_VALUE, threshold=FILTER_THRESHOLD):
-    data[data < threshold] = EXPECTED_MIN
+    # invertion
+    # data = (255 - data)
+    data[data < threshold] = 0
+    # histogram equalization
+    # data = cv2.equalizeHist(data)
     data = data * 1.0 / max_value
+    # data = ndimage.gaussian_filter(data, 2)
+    # data = ndimage.median_filter(data, 4)
     return data
 
 
 def append_data_and_label(m, c, dataset, labels):
-    m = np.transpose(m, (2, 0, 1))
-    assert m.shape == EXPECTED_DIM
-    dataset.append(np.array([m]))
+    # append as 3 channels
+    dataset.append(np.array([[m, m, m]]))
     # one-hot encoding
-    label = np.zeros(EXPECTED_CLASS)
+    label = np.zeros(5)
     label[c] = 1.0
-    assert label.shape == (EXPECTED_CLASS,)
     labels.append(np.array([label]))
 
 
@@ -95,14 +101,15 @@ if __name__ == '__main__':
             for f_sub in os.listdir(path):
                 path_sub = os.path.join(path, f_sub)
                 if os.path.isfile(path_sub):
-                    img = cv2.imread(path_sub)
-                    img = normalize_and_filter(img)
+                    # read as gray image
+                    gray = cv2.imread(path_sub, 0)
+                    gray = normalize_and_filter(gray)
                     # gather stat
-                    stat[img.shape] = stat[img.shape] + 1 if img.shape in stat else 1
-                    for square in square_slice_generator(img, EXPECTED_SIZE):
+                    stat[gray.shape] = stat[gray.shape] + 1 if gray.shape in stat else 1
+                    for square in square_slice_generator(gray, EXPECTED_SIZE):
                         # save train data
                         append_data_and_label(square, i, data, labels)
-                    r = resize(img, EXPECTED_SIZE)
+                    r = resize(gray, EXPECTED_SIZE)
                     append_data_and_label(r, i, data, labels)
                     # save test data
                     append_data_and_label(r, i, data_test, labels_test)
@@ -117,13 +124,6 @@ if __name__ == '__main__':
     # write label index as json file
     with open(index_file, 'w') as f:
         json.dump(label_indexes, f)
-
-    print(data[0].shape)
-    print(labels[0].shape)
-    print(label_indexes)
-    # print(stat)
-    assert data[0].shape == EXPECTED_DIM
-    assert labels[0].shape == (EXPECTED_CLASS,)
 
     # close file
     datafile.close()

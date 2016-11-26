@@ -1,8 +1,7 @@
 '''
 Train batik classifier
 GPU run command:
-    THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python train.py <in:dataset.h5> <in:dataset.test.h5> <dataset.index.json>
-
+    THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python train.py <in:dataset.h5> <in:dataset.test.h5>
 '''
 from __future__ import print_function
 import numpy as np
@@ -21,31 +20,35 @@ from sklearn.model_selection import train_test_split
 from datetime import datetime
 
 # training parameters
-BATCH_SIZE = 50
-NB_EPOCH = 20
+BATCH_SIZE = 5
+NB_EPOCH = 2
+DATASET_BATCH_SIZE = 100
 
-# dataset
-DATASET_BATCH_SIZE = 20000
-
+# const
 EXPECTED_SIZE = 224
 EXPECTED_CHANNELS = 3
 EXPECTED_DIM = (EXPECTED_CHANNELS, EXPECTED_SIZE, EXPECTED_SIZE)
 EXPECTED_CLASS = 5
 
+
+def dataset_generator(dataset, batch_size):
+    while True:
+        for i in range(dataset.data.nrows):
+            end = i + batch_size if i + batch_size <= dataset.data.nrows else dataset.data.nrows
+            X = dataset.data[i: end]
+            Y = dataset.labels[i: end]
+            yield(X, Y)
+
+
 # command line arguments
 dataset_file = sys.argv[1]
 test_file = sys.argv[2]
-dataset_index_file = sys.argv[3]
-
-# read index
-with open(dataset_index_file, 'r') as f:
-    dataset_index = json.load(f)
 
 # loading dataset
 print('Loading train dataset: {}'.format(dataset_file))
 datafile = tables.open_file(dataset_file, mode='r')
 dataset = datafile.root
-print(dataset.data[:].shape)
+print(dataset.data.nrows, dataset.data[0].shape)
 
 # setup model
 print('Preparing model')
@@ -66,32 +69,19 @@ for layer in base_model.layers:
     layer.trainable = False
 
 # compile the model (should be done *after* setting layers to non-trainable)
-# sgd = SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True)
-# model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
-model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+sgd = SGD(lr=1e-4, decay=1e-6, momentum=0.9, nesterov=True)
+model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
 
 # training model
 num_rows = dataset.data.nrows
 
 if num_rows > DATASET_BATCH_SIZE:
-    # batch training. bad result so far :(
-    num_iterate = num_rows / DATASET_BATCH_SIZE
-    print('Training model using {} data in batch of {}'.format(num_rows, DATASET_BATCH_SIZE))
-    for e in range(NB_EPOCH):
-        print('Epoch {}/{}'.format(e + 1, NB_EPOCH))
-        for i in range(num_iterate):
-            print('Data batch {}/{}'.format(i + 1, num_iterate))
-            begin = i * DATASET_BATCH_SIZE
-            end = begin + DATASET_BATCH_SIZE
-            X_train, X_test, Y_train, Y_test = train_test_split(
-                dataset.data[begin:end], dataset.labels[begin:end],
-                test_size=0.10
-            )
-            model.fit(X_train, Y_train,
-                      batch_size=BATCH_SIZE,
-                      nb_epoch=1,
-                      validation_data=(X_test, Y_test),
-                      shuffle=True)
+    # batch training
+    model.fit_generator(
+        dataset_generator(dataset, BATCH_SIZE),
+        samples_per_epoch=num_rows,
+        nb_epoch=NB_EPOCH
+    )
 else:
     # one-go training
     X_train, X_test, Y_train, Y_test = train_test_split(dataset.data[:], dataset.labels[:], test_size=0.10)
