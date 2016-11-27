@@ -10,6 +10,7 @@ import cv2
 import json
 import tables
 import math
+import random
 from keras.applications.vgg16 import VGG16
 from keras.models import Sequential, Model
 from keras.layers import Input
@@ -20,9 +21,9 @@ from sklearn.model_selection import train_test_split
 from datetime import datetime
 
 # training parameters
-BATCH_SIZE = 10
-NB_EPOCH = 10
-DATASET_BATCH_SIZE = 100
+BATCH_SIZE = 40
+NB_EPOCH = 5
+DATASET_BATCH_SIZE = 1000
 
 # const
 EXPECTED_SIZE = 224
@@ -34,10 +35,12 @@ MODEL_NAME = 'model.h5'
 
 def dataset_generator(dataset, batch_size):
     while True:
-        for i in range(dataset.data.nrows):
-            end = i + batch_size if i + batch_size <= dataset.data.nrows else dataset.data.nrows
-            X = dataset.data[i: end]
-            Y = dataset.labels[i: end]
+        i = 0
+        while i < dataset.data.nrows:
+            end = i + batch_size
+            X = dataset.data[i:end]
+            Y = dataset.labels[i:end]
+            i = end
             yield(X, Y)
 
 
@@ -47,7 +50,6 @@ test_file = sys.argv[2]
 
 print('BATCH_SIZE: {}'.format(BATCH_SIZE))
 print('NB_EPOCH: {}'.format(NB_EPOCH))
-print('DATASET_BATCH_SIZE: {}'.format(DATASET_BATCH_SIZE))
 
 # loading dataset
 print('Loading test & train dataset: {}'.format(dataset_file))
@@ -56,9 +58,9 @@ dataset = datafile.root
 print('Train data: {}'.format((dataset.data.nrows,) + dataset.data[0].shape))
 test_tables = tables.open_file(test_file, mode='r')
 test = test_tables.root
-X = test.data[:]
-Y = test.labels[:]
-print('Test data: {}'.format(X.shape))
+X_test = test.data[:]
+Y_test = test.labels[:]
+print('Test data: {}'.format(X_test.shape))
 
 # setup model
 print('Preparing model')
@@ -86,14 +88,17 @@ model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy
 num_rows = dataset.data.nrows
 if num_rows > DATASET_BATCH_SIZE:
     # batch training
+    print('DATASET_BATCH_SIZE: {}'.format(DATASET_BATCH_SIZE))
     model.fit_generator(
         dataset_generator(dataset, BATCH_SIZE),
         samples_per_epoch=num_rows,
-        nb_epoch=NB_EPOCH
+        nb_epoch=NB_EPOCH,
+        validation_data=(X_test, Y_test)
     )
 else:
     # one-go training
-    X_train, X_test, Y_train, Y_test = train_test_split(dataset.data[:], dataset.labels[:], test_size=0.10)
+    X_train = dataset.data[:]
+    Y_train = dataset.labels[:]
     model.fit(X_train, Y_train,
               batch_size=BATCH_SIZE,
               nb_epoch=NB_EPOCH,

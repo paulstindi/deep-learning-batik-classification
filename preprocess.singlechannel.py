@@ -125,6 +125,13 @@ if __name__ == '__main__':
     with open(index_file, 'w') as f:
         json.dump(label_indexes, f)
 
+    print((data.nrows,) + data[0].shape)
+    print((labels.nrows,) + labels[0].shape)
+    print(label_indexes)
+    # print(stat)
+    assert data[0].shape == EXPECTED_DIM
+    assert labels[0].shape == (EXPECTED_CLASS,)
+
     # close file
     datafile.close()
     testfile.close()

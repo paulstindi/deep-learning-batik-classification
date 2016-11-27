@@ -23,6 +23,7 @@ EXPECTED_CHANNELS = 3
 EXPECTED_DIM = (EXPECTED_CHANNELS, EXPECTED_SIZE, EXPECTED_SIZE)
 EXPECTED_CLASS = 5
 MAX_VALUE = 255
+MEDIAN_VALUE = MAX_VALUE / 2.0
 
 
 def square_slice_generator(data, size, slices_per_axis=5):
@@ -47,9 +48,9 @@ def resize(data, size):
     return cv2.resize(data, (size, size))
 
 
-def normalize_and_filter(data, max_value=MAX_VALUE, threshold=FILTER_THRESHOLD):
+def normalize_and_filter(data, expected_max=EXPECTED_MAX, median=MEDIAN_VALUE, threshold=FILTER_THRESHOLD):
+    data = (data - median) / median * expected_max
     data[data < threshold] = EXPECTED_MIN
-    data = data * 1.0 / max_value
     return data
 
 
