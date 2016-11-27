@@ -10,6 +10,7 @@ import numpy as np
 import json
 import progressbar
 import tables
+from random import sample
 
 # config
 EXPECTED_MAX = 100.0
@@ -118,8 +119,8 @@ if __name__ == '__main__':
     with open(index_file, 'w') as f:
         json.dump(label_indexes, f)
 
-    print(data[0].shape)
-    print(labels[0].shape)
+    print((data.nrows,) + data[0].shape)
+    print((labels.nrows,) + labels[0].shape)
     print(label_indexes)
     # print(stat)
     assert data[0].shape == EXPECTED_DIM

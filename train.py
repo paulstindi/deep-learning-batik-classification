@@ -20,8 +20,8 @@ from sklearn.model_selection import train_test_split
 from datetime import datetime
 
 # training parameters
-BATCH_SIZE = 5
-NB_EPOCH = 2
+BATCH_SIZE = 10
+NB_EPOCH = 10
 DATASET_BATCH_SIZE = 100
 
 # const
@@ -30,6 +30,7 @@ EXPECTED_CHANNELS = 3
 EXPECTED_DIM = (EXPECTED_CHANNELS, EXPECTED_SIZE, EXPECTED_SIZE)
 EXPECTED_CLASS = 5
 MODEL_NAME = 'model.h5'
+
 
 def dataset_generator(dataset, batch_size):
     while True:
@@ -49,10 +50,15 @@ print('NB_EPOCH: {}'.format(NB_EPOCH))
 print('DATASET_BATCH_SIZE: {}'.format(DATASET_BATCH_SIZE))
 
 # loading dataset
-print('Loading train dataset: {}'.format(dataset_file))
+print('Loading test & train dataset: {}'.format(dataset_file))
 datafile = tables.open_file(dataset_file, mode='r')
 dataset = datafile.root
-print(dataset.data.nrows, dataset.data[0].shape)
+print('Train data: {}'.format((dataset.data.nrows,) + dataset.data[0].shape))
+test_tables = tables.open_file(test_file, mode='r')
+test = test_tables.root
+X = test.data[:]
+Y = test.labels[:]
+print('Test data: {}'.format(X.shape))
 
 # setup model
 print('Preparing model')
@@ -78,7 +84,6 @@ model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy
 
 # training model
 num_rows = dataset.data.nrows
-
 if num_rows > DATASET_BATCH_SIZE:
     # batch training
     model.fit_generator(
@@ -98,17 +103,6 @@ else:
 # saving model
 print('Saving model')
 model.save(MODEL_NAME)
-
-print('Loading test dataset: {}'.format(test_file))
-test_tables = tables.open_file(test_file, mode='r')
-test = test_tables.root
-X = test.data[:]
-Y = test.labels[:]
-print(X.shape)
-
-print('Evaluating')
-score = model.evaluate(X, Y)
-print('{}: {}%'.format(model.metrics_names[1], score[1] * 100))
 
 # close dataset
 datafile.close()
