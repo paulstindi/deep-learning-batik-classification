@@ -5,7 +5,7 @@ import numpy as np
 # config
 EXPECTED_MAX = 100.0
 EXPECTED_MIN = -1 * EXPECTED_MAX
-FILTER_THRESHOLD = -90.0
+FILTER_THRESHOLD = 50.0
 
 # const
 MAX_VALUE = 255
@@ -41,7 +41,7 @@ def normalize_and_filter(data, max_value=MAX_VALUE, median=MEDIAN_VALUE, expecte
     # data = cv2.medianBlur(data, 3)
     # data = cv2.GaussianBlur(data, (5, 5), 0)
     data = (data - median) / median * expected_max
-    # data[data < threshold] = expected_min
+    data[data < threshold] = expected_min
     return data
 
 
