@@ -15,6 +15,7 @@ from keras.models import Sequential, Model
 from keras.layers import Input
 from keras.layers.core import Flatten, Dense, Dropout
 from keras.optimizers import SGD
+from keras.preprocessing.image import ImageDataGenerator
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix
 
@@ -64,10 +65,10 @@ if __name__ == '__main__':
     print('Preparing model')
     model = Sequential()
     model.add(Flatten(input_shape=FEATURES_DIM))
-    model.add(Dense(4096, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(4096, activation='relu'))
-    model.add(Dropout(0.5))
+    model.add(Dense(4096, activation='tanh'))
+    model.add(Dropout(0.6))
+    model.add(Dense(4096, activation='tanh'))
+    model.add(Dropout(0.6))
     model.add(Dense(EXPECTED_CLASS, activation='softmax', init='uniform'))
 
     # compile the model (should be done *after* setting layers to non-trainable)
@@ -92,11 +93,31 @@ if __name__ == '__main__':
         X_test = test_dataset.data[:]
         Y_train = train_dataset.labels[:]
         Y_test = test_dataset.labels[:]
-        model.fit(X_train, Y_train,
-                  batch_size=BATCH_SIZE,
-                  nb_epoch=NB_EPOCH,
-                  validation_data=(X_test, Y_test),
-                  shuffle=True)
+
+        # this will do preprocessing and realtime data augmentation
+        datagen = ImageDataGenerator(
+            featurewise_center=False,  # set input mean to 0 over the dataset
+            samplewise_center=False,  # set each sample mean to 0
+            featurewise_std_normalization=False,  # divide inputs by std of the dataset
+            samplewise_std_normalization=False,  # divide each input by its std
+            zca_whitening=False,  # apply ZCA whitening
+            rotation_range=45,  # randomly rotate images in the range (degrees, 0 to 180)
+            width_shift_range=0.1,  # randomly shift images horizontally (fraction of total width)
+            height_shift_range=0.1,  # randomly shift images vertically (fraction of total height)
+            horizontal_flip=True,  # randomly flip images
+            vertical_flip=False)  # randomly flip images
+        datagen.fit(X_train)
+        model.fit_generator(
+            datagen.flow(X_train, Y_train, batch_size=BATCH_SIZE),
+            samples_per_epoch=8000,
+            nb_epoch=NB_EPOCH,
+            validation_data=(X_test, Y_test))
+
+        # model.fit(X_train, Y_train,
+        #           batch_size=BATCH_SIZE,
+        #           nb_epoch=NB_EPOCH,
+        #           validation_data=(X_test, Y_test),
+        #           shuffle=True)
 
         print('Predicting')
         # set max class to 1 and rest to 0
