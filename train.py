@@ -10,15 +10,17 @@ import cv2
 import tables
 import math
 import random
+import json
 from keras.models import Sequential, Model
 from keras.layers import Input
 from keras.layers.core import Flatten, Dense, Dropout
 from keras.optimizers import SGD
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, confusion_matrix
 
 # training parameters
 BATCH_SIZE = 40
-NB_EPOCH = 5
+NB_EPOCH = 10
 DATASET_BATCH_SIZE = 1000
 
 # const
@@ -40,24 +42,31 @@ def dataset_generator(dataset, batch_size):
 
 if __name__ == '__main__':
     # command line arguments
-    dataset_file = sys.argv[1]
+    train_file = sys.argv[1]
+    test_file = sys.argv[2]
+    class_file = sys.argv[3]
 
     print('BATCH_SIZE: {}'.format(BATCH_SIZE))
     print('NB_EPOCH: {}'.format(NB_EPOCH))
 
     # loading dataset
-    print('Loading train dataset: {}'.format(dataset_file))
-    datafile = tables.open_file(dataset_file, mode='r')
-    dataset = datafile.root
-    print('Train data: {}'.format((dataset.data.nrows,) + dataset.data[0].shape))
+    print('Loading train dataset: {}'.format(train_file))
+    train_datafile = tables.open_file(train_file, mode='r')
+    train_dataset = train_datafile.root
+    print('Train data: {}'.format((train_dataset.data.nrows,) + train_dataset.data[0].shape))
+
+    print('Loading test dataset: {}'.format(test_file))
+    test_datafile = tables.open_file(test_file, mode='r')
+    test_dataset = test_datafile.root
+    print('Test data: {}'.format((test_dataset.data.nrows,) + test_dataset.data[0].shape))
 
     # setup model
     print('Preparing model')
     model = Sequential()
     model.add(Flatten(input_shape=FEATURES_DIM))
-    model.add(Dense(4096, activation='tanh'))
+    model.add(Dense(4096, activation='relu'))
     model.add(Dropout(0.5))
-    model.add(Dense(4096, activation='tanh'))
+    model.add(Dense(4096, activation='relu'))
     model.add(Dropout(0.5))
     model.add(Dense(EXPECTED_CLASS, activation='softmax', init='uniform'))
 
@@ -66,28 +75,48 @@ if __name__ == '__main__':
     model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
 
     # training model
-    num_rows = dataset.data.nrows
+    num_rows = train_dataset.data.nrows
     if num_rows > DATASET_BATCH_SIZE:
         # batch training
         print('DATASET_BATCH_SIZE: {}'.format(DATASET_BATCH_SIZE))
         model.fit_generator(
-            dataset_generator(dataset, BATCH_SIZE),
+            dataset_generator(train_dataset, BATCH_SIZE),
             samples_per_epoch=num_rows,
-            nb_epoch=NB_EPOCH
+            nb_epoch=NB_EPOCH,
+            validation_data=dataset_generator(test_dataset, DATASET_BATCH_SIZE)
         )
     else:
         # one-go training
         print('BATCH_SIZE: {}'.format(BATCH_SIZE))
-        X_train, X_test, Y_train, Y_test = train_test_split(dataset.data[:], dataset.labels[:], test_size=0.1, random_state=42)
+        X_train = train_dataset.data[:]
+        X_test = test_dataset.data[:]
+        Y_train = train_dataset.labels[:]
+        Y_test = test_dataset.labels[:]
         model.fit(X_train, Y_train,
                   batch_size=BATCH_SIZE,
                   nb_epoch=NB_EPOCH,
                   validation_data=(X_test, Y_test),
                   shuffle=True)
 
+        print('Predicting')
+        # set max class to 1 and rest to 0
+        Y_pred = model.predict_on_batch(X_test)
+        predictions = Y_pred.argmax(1)
+        truths = Y_test.argmax(1)
+        acc = accuracy_score(truths, predictions)
+        print('Accuracy: {}'.format(acc))
+        print('Confusion matrix: ')
+        cm = confusion_matrix(truths, predictions)
+        print(cm)
+
+    with open(class_file, 'r') as f:
+        classes = json.load(f)
+        print(['{}:{}'.format(i, classes[i]) for i in sorted(classes)])
+
     # saving model
-    print('Saving model')
-    model.save(MODEL_NAME)
+    # print('Saving model')
+    # model.save(MODEL_NAME)
 
     # close dataset
-    datafile.close()
+    train_datafile.close()
+    test_datafile.close()

@@ -1,6 +1,6 @@
 '''
 Vectorize batik dataset
-Usage: python preprocess.py <in:batik images directory> <out:dataset> <out.dataset.test> <out:dataset.index>
+Usage: python preprocess.py <in:batik images directory> <out:dataset> <out:dataset.index>
 
 '''
 import os
@@ -16,6 +16,8 @@ from random import sample
 EXPECTED_MAX = 100.0
 EXPECTED_MIN = -1 * EXPECTED_MAX
 FILTER_THRESHOLD = -90.0
+DATASET_PATH = 'dataset.h5'
+DATASET_INDEX_PATH = 'dataset.index.json'
 
 # global vars
 EXPECTED_SIZE = 224
@@ -68,9 +70,8 @@ def append_data_and_label(m, c, dataset, labels):
 if __name__ == '__main__':
     # get absolute path from arg
     mypath = sys.argv[1]
-    dataset_file = sys.argv[2]
-    test_file = sys.argv[3]
-    index_file = sys.argv[4]
+    dataset_file = sys.argv[2] if len(sys.argv) > 2 else DATASET_PATH
+    index_file = sys.argv[3] if len(sys.argv) > 3 else DATASET_INDEX_PATH
 
     # iterate dir content
     stat = {}
@@ -83,10 +84,6 @@ if __name__ == '__main__':
     datafile = tables.open_file(dataset_file, mode='w')
     data = datafile.create_earray(datafile.root, 'data', tables.Float32Atom(shape=EXPECTED_DIM), (0,), 'batik')
     labels = datafile.create_earray(datafile.root, 'labels', tables.UInt8Atom(shape=(EXPECTED_CLASS)), (0,), 'batik')
-
-    testfile = tables.open_file(test_file, mode='w')
-    data_test = testfile.create_earray(testfile.root, 'data', tables.Float32Atom(shape=EXPECTED_DIM), (0,), 'batik')
-    labels_test = testfile.create_earray(testfile.root, 'labels', tables.UInt8Atom(shape=(EXPECTED_CLASS)), (0,), 'batik')
 
     # iterate subfolders
     for f in os.listdir(mypath):
@@ -101,13 +98,11 @@ if __name__ == '__main__':
                     img = normalize_and_filter(img)
                     # gather stat
                     stat[img.shape] = stat[img.shape] + 1 if img.shape in stat else 1
-                    for square in square_slice_generator(img, EXPECTED_SIZE):
-                        # save train data
-                        append_data_and_label(square, i, data, labels)
+                    # for square in square_slice_generator(img, EXPECTED_SIZE):
+                    #     # save train data
+                    #     append_data_and_label(square, i, data, labels)
                     r = resize(img, EXPECTED_SIZE)
                     append_data_and_label(r, i, data, labels)
-                    # save test data
-                    append_data_and_label(r, i, data_test, labels_test)
                     # update progress bar
                     bar.update(count)
                     count += 1
@@ -129,4 +124,3 @@ if __name__ == '__main__':
 
     # close file
     datafile.close()
-    testfile.close()

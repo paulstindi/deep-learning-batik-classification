@@ -1,6 +1,6 @@
 '''
 Vectorize batik dataset
-Usage: python preprocess.py <in:batik images directory> <out:dataset> <out.dataset.test> <out:dataset.index>
+Usage: python preprocess.py <in:batik images directory> <out:dataset> <out:dataset.index>
 
 '''
 import os
@@ -10,10 +10,14 @@ import numpy as np
 import json
 import progressbar
 import tables
-from scipy import ndimage
+from random import sample
 
 # config
-FILTER_THRESHOLD = 100
+EXPECTED_MAX = 100.0
+EXPECTED_MIN = -1 * EXPECTED_MAX
+FILTER_THRESHOLD = -90.0
+DATASET_PATH = 'dataset.h5'
+DATASET_INDEX_PATH = 'dataset.index.json'
 
 # global vars
 EXPECTED_SIZE = 224
@@ -21,6 +25,7 @@ EXPECTED_CHANNELS = 3
 EXPECTED_DIM = (EXPECTED_CHANNELS, EXPECTED_SIZE, EXPECTED_SIZE)
 EXPECTED_CLASS = 5
 MAX_VALUE = 255
+MEDIAN_VALUE = MAX_VALUE / 2.0
 
 
 def square_slice_generator(data, size, slices_per_axis=5):
@@ -42,39 +47,31 @@ def square_slice_generator(data, size, slices_per_axis=5):
 
 
 def resize(data, size):
-    scale_row = 1.0 * size / data.shape[0]
-    scale_col = 1.0 * size / data.shape[1]
-    resized = ndimage.interpolation.zoom(data, (scale_row, scale_col), order=3, prefilter=True)
-    return resized
+    return cv2.resize(data, (size, size))
 
 
-def normalize_and_filter(data, max_value=MAX_VALUE, threshold=FILTER_THRESHOLD):
-    # invertion
-    # data = (255 - data)
-    data[data < threshold] = 0
-    # histogram equalization
-    # data = cv2.equalizeHist(data)
-    data = data * 1.0 / max_value
-    # data = ndimage.gaussian_filter(data, 2)
-    # data = ndimage.median_filter(data, 4)
+def normalize_and_filter(data, expected_max=EXPECTED_MAX, median=MEDIAN_VALUE, threshold=FILTER_THRESHOLD):
+    data = (data - median) / median * expected_max
+    data[data < threshold] = EXPECTED_MIN
     return data
 
 
 def append_data_and_label(m, c, dataset, labels):
-    # append as 3 channels
-    dataset.append(np.array([[m, m, m]]))
+    m = np.array([m, m, m])
+    assert m.shape == EXPECTED_DIM
+    dataset.append(np.array([m]))
     # one-hot encoding
-    label = np.zeros(5)
+    label = np.zeros(EXPECTED_CLASS)
     label[c] = 1.0
+    assert label.shape == (EXPECTED_CLASS,)
     labels.append(np.array([label]))
 
 
 if __name__ == '__main__':
     # get absolute path from arg
     mypath = sys.argv[1]
-    dataset_file = sys.argv[2]
-    test_file = sys.argv[3]
-    index_file = sys.argv[4]
+    dataset_file = sys.argv[2] if len(sys.argv) > 2 else DATASET_PATH
+    index_file = sys.argv[3] if len(sys.argv) > 3 else DATASET_INDEX_PATH
 
     # iterate dir content
     stat = {}
@@ -88,10 +85,6 @@ if __name__ == '__main__':
     data = datafile.create_earray(datafile.root, 'data', tables.Float32Atom(shape=EXPECTED_DIM), (0,), 'batik')
     labels = datafile.create_earray(datafile.root, 'labels', tables.UInt8Atom(shape=(EXPECTED_CLASS)), (0,), 'batik')
 
-    testfile = tables.open_file(test_file, mode='w')
-    data_test = testfile.create_earray(testfile.root, 'data', tables.Float32Atom(shape=EXPECTED_DIM), (0,), 'batik')
-    labels_test = testfile.create_earray(testfile.root, 'labels', tables.UInt8Atom(shape=(EXPECTED_CLASS)), (0,), 'batik')
-
     # iterate subfolders
     for f in os.listdir(mypath):
         path = os.path.join(mypath, f)
@@ -101,18 +94,15 @@ if __name__ == '__main__':
             for f_sub in os.listdir(path):
                 path_sub = os.path.join(path, f_sub)
                 if os.path.isfile(path_sub):
-                    # read as gray image
-                    gray = cv2.imread(path_sub, 0)
-                    gray = normalize_and_filter(gray)
+                    img = cv2.imread(path_sub, 0)
+                    img = normalize_and_filter(img)
                     # gather stat
-                    stat[gray.shape] = stat[gray.shape] + 1 if gray.shape in stat else 1
-                    for square in square_slice_generator(gray, EXPECTED_SIZE):
-                        # save train data
-                        append_data_and_label(square, i, data, labels)
-                    r = resize(gray, EXPECTED_SIZE)
+                    stat[img.shape] = stat[img.shape] + 1 if img.shape in stat else 1
+                    # for square in square_slice_generator(img, EXPECTED_SIZE):
+                    #     # save train data
+                    #     append_data_and_label(square, i, data, labels)
+                    r = resize(img, EXPECTED_SIZE)
                     append_data_and_label(r, i, data, labels)
-                    # save test data
-                    append_data_and_label(r, i, data_test, labels_test)
                     # update progress bar
                     bar.update(count)
                     count += 1
@@ -134,4 +124,3 @@ if __name__ == '__main__':
 
     # close file
     datafile.close()
-    testfile.close()
