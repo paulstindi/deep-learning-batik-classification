@@ -52,7 +52,7 @@ def resize(data, size):
 
 def normalize_and_filter(data, expected_max=EXPECTED_MAX, median=MEDIAN_VALUE, threshold=FILTER_THRESHOLD):
     data = (data - median) / median * expected_max
-    data[data < threshold] = EXPECTED_MIN
+    # data[data < threshold] = EXPECTED_MIN
     return data
 
 

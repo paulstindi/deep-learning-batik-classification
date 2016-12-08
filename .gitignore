@@ -2,3 +2,6 @@
 *.h5
 *.tar.gz
 *.log
+full_test.local.sh
+dataset.index.json
+dataset_cleaned/
