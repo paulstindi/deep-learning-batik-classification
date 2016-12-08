@@ -94,7 +94,7 @@ if __name__ == '__main__':
         Y_train = train_dataset.labels[:]
         Y_test = test_dataset.labels[:]
 
-        # this will do preprocessing and realtime data augmentation
+        # # this will do preprocessing and realtime data augmentation
         # datagen = ImageDataGenerator(
         #     featurewise_center=False,  # set input mean to 0 over the dataset
         #     samplewise_center=False,  # set each sample mean to 0
