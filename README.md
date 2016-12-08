@@ -9,11 +9,3 @@ Dataset consist of 5 batik classes where each images will **belong to exactly on
 1. Ceplok: repetition of geometrical motif shapes (eg. rectangle, square, ovals, stars)
 1. Kawung: kawung (fruit) motif
 1. Nitik: flowers-like motifs
-
-## Found issues
-
-* Lereng and Parang motifs are alike (many redundant training data)
-
-* There quite number of samples in current dataset which actually consist of multiple of motifs (mixed) (eg. Parang + Kawung, Ceplok + Kawung)
-
-* Variances in datasets: variances in image's size & layout
