@@ -1,0 +1,2 @@
+rm *.pkl
+rm *.xml
