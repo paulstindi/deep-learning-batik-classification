@@ -11,14 +11,5 @@
 
 SIFT + BOW + SVM = 0.2167
 SIFT + BOW + SVM + tuned dataset = 0.2553
-
-SURF + BOW + SVM + tuned dataset = 0.4042
-Confusion matrix: 
-[[ 0 10  0  0  0]
- [ 0 10  0  0  0]
- [ 0  3  0  6  0]
- [ 0  0  1  8  0]
- [ 0  3  0  5  1]]
-
 VGG16 + NN = 0.55
 VGG16 + NN + tuned dataset = 0.75
