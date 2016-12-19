@@ -5,5 +5,5 @@
 full_test.local.sh
 dataset.index.json
 dataset_cleaned/
-siftbow/*.pkl
-siftbow/*.xml
+*bow/*.pkl
+*bow/*.xml
