@@ -20,8 +20,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix
 
 # training parameters
-BATCH_SIZE = 40
-NB_EPOCH = 10
+BATCH_SIZE = 50
+NB_EPOCH = 100
 DATASET_BATCH_SIZE = 1000
 
 # const
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     model.add(Dense(EXPECTED_CLASS, activation='softmax', init='uniform'))
 
     # compile the model (should be done *after* setting layers to non-trainable)
-    sgd = SGD(lr=1e-4, decay=1e-6, momentum=0.9, nesterov=True)
+    sgd = SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True)
     model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
 
     # training model
