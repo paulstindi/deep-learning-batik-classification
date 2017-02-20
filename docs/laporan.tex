@@ -272,7 +272,7 @@ The SIFT and SURF models were trained in similar manner using similar methods de
 \item Image descriptors were extracted according to their feature extractor (SIFT or SURF)
 \item Descriptors were clustered to 5 clusters using K-Means to get visual vocabularies for Bag of Words (BoW)
 \item Those 5 visual vocabularies then used to compute BoW features from SIFT/SURF image descriptors
-\item Finally an multi-class SVM classifier were trained using the BoW features
+\item Finally a multi-class SVM classifier were trained using the BoW features
 \end{enumerate}
 
 All experiments were conducted using Intel Core i7-5960X CPU, 32 GB RAM, NVIDIA GTX 1080 8GB GPU, 240GB SSD, Debian 8 OS. The proposed model ran on GPU while SIFT/SURF SVM models ran on CPU as there were yet mature GPU implementation of the algorithms.
